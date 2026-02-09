@@ -248,7 +248,7 @@
                 document.getElementById('powerUI').textContent = stormLevel > 0.6 ? 'Unstable' : 'Stable';
             } catch (e) { console.warn("Weather Sync Failed"); }
         }
-        setInterval(updateSpaceWeather, 600000); updateSpaceWeather();
+        setInterval(updateSpaceWeather, 60000); updateSpaceWeather();
 
         // --- CITY ENGINE ---
         const buildings = Array.from({ length: 40 }, (_, i) => ({

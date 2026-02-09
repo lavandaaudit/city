@@ -130,14 +130,18 @@
     </div>
 
     <div id="panel">
-        <b>ВІЙШОВ У РЕЖИМ ТАЙМЛАЙНУ</b><br>
+        <b>IBONIRIUM · UNIVERSAL SYNC MODULE</b><br>
         Місто та Ліс синхронізовані з 1 січня 2026.<br>
         <br>
         <div id="eternalTimer">Завантаження...</div><br>
-        - Неонове місто та Ліс вирівняні по лінії горизонту.<br>
-        - <b>Sway Reaction:</b> Швидкість коливання дерев залежить від вітру.<br>
-        - <b>Static Reaction:</b> Радіаційні завади на сенсорній панелі.<br>
-        - Дерева ростуть безперервно без періодичних скидань.
+        <b>АНАЛІТИЧНІ РЕАКЦІЇ (NOAA):</b><br>
+        - 🌌 <b>SSN:</b> Керує яскравістю Міста та частотою мерехтіння зірок.<br>
+        - 🌬️ <b>Wind:</b> Визначає інтенсивність коливань лісу та розмиття горизонту.<br>
+        - 🧭 <b>Bz Index:</b> Зміщує спектр міста (Blue → Purple → Red).<br>
+        - ☢️ <b>Radiation:</b> Викликає завади на HUD та деформацію (Curl) гілок.<br>
+        - ⚡ <b>Electrons:</b> Можуть спричиняти візуальний "jitter" хмарочосів.<br>
+        - 💥 <b>Flares:</b> Викиди енергії спричиняють короткочасні спалахи (Surge).<br>
+        - 🌩️ <b>Storm:</b> Керує електричною активністю та пульсацією HUD.
     </div>
 
     <div id="cycle">🔄 CYCLE <span id="cycleDisplay">...</span></div>
@@ -257,26 +261,46 @@
         function drawCity() {
             const ctx = ctxs.cityBack;
             ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+            // REACTION: Wind Bloom (Blur background based on solar wind)
+            const cityBlur = Math.max(0, (solarWind - 400) / 100);
+            ctx.filter = `blur(${cityBlur}px)`;
+
             const pf = 0.015; // City parallax
             const baseY = innerHeight * 0.85; // Aligned horizon
 
             buildings.forEach(b => {
-                const x = (b.x + (mouseX - 0.5) * pf) * innerWidth;
+                // Reaction: Electron Flux Glitch (horizontal jitter)
+                const glitch = electronFlux > 1200 ? (Math.random() - 0.5) * 8 * stormLevel : 0;
+
+                const x = (b.x + (mouseX - 0.5) * pf) * innerWidth + glitch;
                 const w = b.w * innerWidth;
                 const h = b.h * innerHeight;
                 const y = baseY - h + (mouseY - 0.5) * pf * 30;
 
+                // Color varies with Bz (Southward = Purple/Red) and Storm
                 let hue = 190 + (bz < 0 ? Math.abs(bz) * 12 : 0) + stormLevel * 50;
                 let brightness = 20 + Math.sin(Date.now() * 0.001 + b.seed) * 10;
 
-                if (stormLevel > 0.6 && Math.random() < 0.1) brightness *= 2;
+                // Reaction: SSN Energy Bloom (Glow surge)
+                if (ssn > 80) {
+                    ctx.shadowBlur = 10 + (ssn - 80) / 2;
+                    ctx.shadowColor = `hsla(${hue}, 100%, 70%, 0.5)`;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
 
-                ctx.fillStyle = `hsla(${hue}, 80%, ${brightness}%, 0.8)`;
+                // REACTION: Flare Surge (Sudden brightness boost during flares)
+                let flareSurge = (recentFlare.class.startsWith('X') || recentFlare.class.startsWith('M')) ? 1.5 : 1.0;
+
+                ctx.fillStyle = `hsla(${hue}, 80%, ${brightness * flareSurge}%, 0.8)`;
                 ctx.fillRect(x - w / 2, y, w, h);
 
                 ctx.strokeStyle = `hsla(${hue}, 100%, 65%, ${0.3 + stormLevel * 0.5})`;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(x - w / 2, y, w, h);
+
+                ctx.filter = 'none'; // Reset filter for next building
 
                 // STATIC WINDOWS
                 if (b.h > 0.2) {
@@ -340,16 +364,35 @@
                     ctx.lineWidth = Math.max(1, len * 0.12 * (1 + stormLevel * 0.3));
                     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
 
-                    // REACTION 1: Solar Wind Sway Turbulence
-                    const swaySpeed = 0.001 + (solarWind / 200000);
-                    angle += Math.sin(i * 1.5 + this.baseSeed + cycle + Date.now() * swaySpeed + stormLevel * 5) * p.angle;
+                    // REACTION: Radiation Curl (Deformation under proton pressure)
+                    const curl = radiationLevel * 0.3 * Math.sin(this.baseSeed + i);
+
+                    // REACTION: Solar Wind Sway Turbulence (Slowed down)
+                    const swaySpeed = 0.0003 + (solarWind / 500000);
+                    angle += (Math.sin(i * 1.5 + this.baseSeed + cycle + Date.now() * swaySpeed + stormLevel * 5) + curl) * p.angle;
 
                     x = nx; y = ny; len *= 0.68;
                 }
 
                 const crown = (10 + cycle * 3 + radiationLevel * 15) * scale * (1 + stormLevel);
-                ctx.fillStyle = `hsla(${hue + 40}, 100%, 75%, ${opacity * 0.9})`;
+
+                // REACTION: Proton Flux Scorching (Color desaturation/darkening)
+                let crownHue = hue + 40;
+                let crownSat = 100 - (radiationLevel * 40);
+
+                // REACTION: Radioactive Glowing Crown (Flicker)
+                let radFlicker = radiationLevel > 0.1 ? Math.sin(Date.now() * 0.02 + this.baseSeed) * 10 * radiationLevel : 0;
+                if (radiationLevel > 0.2) {
+                    ctx.shadowBlur = 15 * radiationLevel + radFlicker;
+                    ctx.shadowColor = `hsla(${crownHue}, 100%, 80%, ${0.5 * radiationLevel})`;
+                }
+
+                // REACTION: Proton Fade (Crown opacity fluctuates with proton flux)
+                let protonPulse = 1 - (protonFlux > 10 ? Math.abs(Math.sin(Date.now() * 0.001)) * 0.3 : 0);
+
+                ctx.fillStyle = `hsla(${crownHue}, ${crownSat}%, 75%, ${opacity * 0.9 * protonPulse})`;
                 ctx.beginPath(); ctx.arc(x, y, crown, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0; // Reset for next elements
                 this.screenX = x; this.screenY = y; this.screenR = crown * 2;
 
                 if (stormLevel > 0.6) {
@@ -418,7 +461,9 @@
             ctx.clearRect(0, 0, innerWidth, innerHeight);
             ctx.fillStyle = "white";
             stars.forEach(s => {
-                ctx.globalAlpha = 0.1 + Math.sin(Date.now() * 0.001 + s.x * 10) * 0.4;
+                // REACTION: Star Flicker Speed (Tied to SSN)
+                const flickerBase = 0.001 * (1 + ssn / 40);
+                ctx.globalAlpha = 0.1 + Math.sin(Date.now() * flickerBase + s.x * 10) * 0.4;
                 ctx.beginPath(); ctx.arc(s.x * innerWidth, s.y * innerHeight, s.s * 1.5, 0, Math.PI * 2); ctx.fill();
             });
         }
@@ -440,6 +485,13 @@
             // HUD
             const sctx = ctxs.sensors;
             sctx.clearRect(0, 0, innerWidth, 180);
+
+            // REACTION: Storm Pulse (Ambient HUD glow during Kp peaks)
+            if (stormLevel > 0.3) {
+                const pulse = Math.sin(Date.now() * 0.005) * stormLevel * 0.1;
+                sctx.fillStyle = `rgba(0, 255, 255, ${pulse})`;
+                sctx.fillRect(0, 0, innerWidth, 180);
+            }
 
             // REACTION 2: Cosmic Noise HUD Interference
             if (radiationLevel > 0.4) {

@@ -134,10 +134,10 @@
         Місто та Ліс синхронізовані з 1 січня 2026.<br>
         <br>
         <div id="eternalTimer">Завантаження...</div><br>
-        - Неонове місто за лісом реагує на магнітні бурі.<br>
-        - Kp Index > 5 спричиняє нестабільність енергосистеми (flicker).<br>
-        - Bz South забарвлює місто в тривожні тони.<br>
-        - Дерева продовжують свій вічний ріст.
+        - Неонове місто та Ліс вирівняні по лінії горизонту.<br>
+        - <b>Sway Reaction:</b> Швидкість коливання дерев залежить від вітру.<br>
+        - <b>Static Reaction:</b> Радіаційні завади на сенсорній панелі.<br>
+        - Дерева ростуть безперервно без періодичних скидань.
     </div>
 
     <div id="cycle">🔄 CYCLE <span id="cycleDisplay">...</span></div>
@@ -258,7 +258,7 @@
             const ctx = ctxs.cityBack;
             ctx.clearRect(0, 0, innerWidth, innerHeight);
             const pf = 0.015; // City parallax
-            const baseY = innerHeight * 0.82;
+            const baseY = innerHeight * 0.85; // Aligned horizon
 
             buildings.forEach(b => {
                 const x = (b.x + (mouseX - 0.5) * pf) * innerWidth;
@@ -266,7 +266,7 @@
                 const h = b.h * innerHeight;
                 const y = baseY - h + (mouseY - 0.5) * pf * 30;
 
-                let hue = 190 + (bz < 0 ? Math.abs(bz) * 10 : 0) + stormLevel * 50;
+                let hue = 190 + (bz < 0 ? Math.abs(bz) * 12 : 0) + stormLevel * 50;
                 let brightness = 20 + Math.sin(Date.now() * 0.001 + b.seed) * 10;
 
                 if (stormLevel > 0.6 && Math.random() < 0.1) brightness *= 2;
@@ -274,13 +274,14 @@
                 ctx.fillStyle = `hsla(${hue}, 80%, ${brightness}%, 0.8)`;
                 ctx.fillRect(x - w / 2, y, w, h);
 
-                ctx.strokeStyle = `hsla(${hue}, 100%, 60%, ${0.3 + stormLevel * 0.5})`;
+                ctx.strokeStyle = `hsla(${hue}, 100%, 65%, ${0.3 + stormLevel * 0.5})`;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(x - w / 2, y, w, h);
 
+                // STATIC WINDOWS
                 if (b.h > 0.2) {
                     ctx.fillStyle = `hsla(${hue + 40}, 100%, 80%, ${0.2 * (1 - stormLevel)})`;
-                    for (let r = 1; r < 10; r++) {
+                    for (let r = 1; r < 12; r++) {
                         for (let c = 0; c < 3; c++) {
                             if (Math.sin(b.seed + r * c) > 0) {
                                 ctx.fillRect(x - w / 2 + c * (w / 4) + 2, y + r * (h / 15), w / 8, 2);
@@ -323,7 +324,7 @@
                 const pf = this.layer === 'back' ? 0.02 : this.layer === 'mid' ? 0.05 : 0.1;
 
                 let x = (this.x + (mouseX - 0.5) * pf) * ctx.canvas.width;
-                let y = (ctx.canvas.height * 0.8) + (mouseY - 0.5) * pf * 50;
+                let y = (ctx.canvas.height * 0.85) + (mouseY - 0.5) * pf * 50; // Aligned horizon
 
                 let len = (50 + cycle * 10 + (ssn / 10)) * scale * (1 + (solarWind - 400) / 2000);
                 let angle = -Math.PI / 2;
@@ -338,7 +339,11 @@
                     const ny = y + Math.sin(angle) * len;
                     ctx.lineWidth = Math.max(1, len * 0.12 * (1 + stormLevel * 0.3));
                     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
-                    angle += Math.sin(i * 1.5 + this.baseSeed + cycle + stormLevel * 5) * p.angle;
+
+                    // REACTION 1: Solar Wind Sway Turbulence
+                    const swaySpeed = 0.001 + (solarWind / 200000);
+                    angle += Math.sin(i * 1.5 + this.baseSeed + cycle + Date.now() * swaySpeed + stormLevel * 5) * p.angle;
+
                     x = nx; y = ny; len *= 0.68;
                 }
 
@@ -435,6 +440,15 @@
             // HUD
             const sctx = ctxs.sensors;
             sctx.clearRect(0, 0, innerWidth, 180);
+
+            // REACTION 2: Cosmic Noise HUD Interference
+            if (radiationLevel > 0.4) {
+                sctx.fillStyle = `rgba(255, 255, 255, ${radiationLevel * 0.15})`;
+                for (let i = 0; i < 30; i++) {
+                    sctx.fillRect(Math.random() * innerWidth, Math.random() * 180, 1, 1);
+                }
+            }
+
             sctx.fillStyle = "#ffd700";
             sctx.fillRect(50, 140, (innerWidth - 100) * timeline.progress, 4);
             sctx.font = "10px monospace";
